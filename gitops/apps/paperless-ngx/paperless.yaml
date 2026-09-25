@@ -26,6 +26,9 @@ spec:
       labels:
         app.kubernetes.io/name: paperless
     spec:
+      # Avoid Kubernetes service-link variables overriding Paperless settings
+      # such as PAPERLESS_PORT with an address like tcp://<cluster-ip>:8000.
+      enableServiceLinks: false
       initContainers:
         - name: wait-for-dependencies
           image: postgres:17.6-alpine
