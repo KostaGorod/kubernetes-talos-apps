@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/KostaGorod/kubernetes-talos-apps.git
-    targetRevision: feat/tailscale-paperless
+    targetRevision: main
     path: gitops/apps/paperless-ngx
   destination:
     server: https://kubernetes.default.svc

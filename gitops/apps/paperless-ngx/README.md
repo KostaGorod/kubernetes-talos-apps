@@ -20,9 +20,10 @@ Before syncing this Application for the first time:
    requirements in its [operator setup guide](https://tailscale.com/docs/kubernetes-operator/install-operator).
 
 Persistent volumes use the existing `hcloud-volumes-encrypted` StorageClass;
-there is no new storage platform. Requested PVC capacity totals 25 GiB across
-four Hetzner CSI volumes (5 GiB PostgreSQL, 5 GiB Paperless data, 10 GiB media,
-5 GiB consume); actual billable capacity and price depend on Hetzner volume
-billing/rounding. The volumes are retained by the StorageClass and require a
-separately configured backup and tested restore procedure before this is used
-for important documents.
+there is no new storage platform. Requested PVC capacity totals 40 GiB across
+four Hetzner CSI volumes (10 GiB PostgreSQL, 10 GiB Paperless data, 10 GiB
+media, 10 GiB consume). Hetzner CSI enforces a 10 GB minimum per volume. At
+Hetzner's published €0.044/GB-month, this is approximately €1.89/month before
+billing/rounding (40 GiB = 42.95 decimal GB). The volumes are retained by the
+StorageClass and require a separately configured backup and tested restore
+procedure before this is used for important documents.

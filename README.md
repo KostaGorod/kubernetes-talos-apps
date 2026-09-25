@@ -70,10 +70,12 @@ kubectl --kubeconfig /path/to/talos-hcloud/clusters/develop/.generated/kubeconfi
 ```
 
 Then open `https://<runner-tailscale-ip>:18443` from an authorized tailnet
-peer (the Argo CD TLS certificate may be self-signed). This port-forward is
-session-bound, not a durable UI endpoint. Paperless-ngx is separately exposed
-through the Tailscale Kubernetes Operator as a private tailnet HTTPS service;
-no public ingress, Funnel, or Cloudflare Tunnel is configured.
+peer (the Argo CD TLS certificate may be self-signed). For Paperless-ngx, use
+`https://paperless.myth-rudd.ts.net` after Tailscale provisioning is healthy.
+The Argo CD port-forward is session-bound, not a durable UI endpoint.
+Paperless-ngx is separately exposed through the Tailscale Kubernetes Operator
+as a private tailnet HTTPS service; no public ingress, Funnel, or Cloudflare
+Tunnel is configured.
 
 ## Security
 
