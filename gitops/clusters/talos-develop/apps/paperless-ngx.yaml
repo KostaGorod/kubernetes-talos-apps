@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: paperless-ngx
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/KostaGorod/kubernetes-talos-apps.git
+    targetRevision: feat/tailscale-paperless
+    path: gitops/apps/paperless-ngx
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: paperless
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

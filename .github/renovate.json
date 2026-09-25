@@ -2,5 +2,18 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", ":dependencyDashboard", "schedule:weekly"],
   "labels": ["dependencies"],
-  "prHourlyLimit": 4
+  "prHourlyLimit": 4,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track the Tailscale Operator Helm chart version",
+      "managerFilePatterns": ["/gitops\\/clusters\\/talos-develop\\/apps\\/tailscale-operator\\.yaml$/"],
+      "matchStrings": [
+        "chart: tailscale-operator\\s+targetRevision: (?<currentValue>[^\\s]+)"
+      ],
+      "datasourceTemplate": "helm",
+      "depNameTemplate": "tailscale-operator",
+      "registryUrlTemplate": "https://pkgs.tailscale.com/helmcharts"
+    }
+  ]
 }
