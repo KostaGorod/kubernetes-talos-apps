@@ -1,0 +1,16 @@
+# Keep Argo CD private and TLS-terminating behind its ClusterIP service.
+server:
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
+
+configs:
+  params:
+    server.insecure: false
+
+dex:
+  enabled: false
+
+notifications:
+  enabled: false
