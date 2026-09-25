@@ -1,0 +1,14 @@
+[tools]
+"aqua:helm/helm" = "3.19.0"
+"aqua:helmfile/helmfile" = "1.8.0"
+"aqua:kubernetes-sigs/kustomize" = "5.8.1"
+"aqua:yannh/kubeconform" = "0.8.0"
+"aqua:rhysd/actionlint" = "1.7.12"
+"pipx:yamllint" = "1.38.0"
+
+[tasks.validate]
+run = "bash scripts/validate.sh"
+description = "Lint and validate the active GitOps selection and bootstrap Application"
+
+[settings]
+auto_install = true
