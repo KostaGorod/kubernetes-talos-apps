@@ -1,0 +1,5 @@
+# Local mise configuration
+.mise.local.toml
+
+# Kubernetes client configuration
+*.kubeconfig

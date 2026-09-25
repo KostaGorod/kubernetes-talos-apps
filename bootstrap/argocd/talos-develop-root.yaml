@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: talos-develop-apps
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/KostaGorod/kubernetes-talos-apps.git
+    targetRevision: main
+    path: gitops/clusters/talos-develop/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+# Keep the first reconciliation deliberate while the initial app allowlist is empty.
