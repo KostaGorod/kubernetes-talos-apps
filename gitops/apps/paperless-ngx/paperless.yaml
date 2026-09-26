@@ -43,12 +43,12 @@ spec:
             limits:
               cpu: 100m
               memory: 128Mi
-        - name: wait-for-redis
-          image: redis:8.2.4-alpine
+        - name: wait-for-valkey
+          image: valkey/valkey:8.1.10-alpine
           command:
             - sh
             - -ec
-            - until redis-cli -h redis ping; do sleep 2; done
+            - until valkey-cli -h valkey ping; do sleep 2; done
           resources:
             requests:
               cpu: 10m
@@ -78,7 +78,7 @@ spec:
                   name: paperless-runtime
                   key: POSTGRES_PASSWORD
             - name: PAPERLESS_REDIS
-              value: redis://redis:6379
+              value: redis://valkey:6379
             - name: PAPERLESS_ADMIN_USER
               value: paperless-admin
             - name: PAPERLESS_ADMIN_PASSWORD
@@ -92,9 +92,15 @@ spec:
                   name: paperless-runtime
                   key: PAPERLESS_SECRET_KEY
             - name: PAPERLESS_URL
-              value: https://paperless.myth-rudd.ts.net
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-runtime
+                  key: PAPERLESS_URL
             - name: PAPERLESS_CSRF_TRUSTED_ORIGINS
-              value: https://paperless.myth-rudd.ts.net
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-runtime
+                  key: PAPERLESS_CSRF_TRUSTED_ORIGINS
             - name: PAPERLESS_TIME_ZONE
               value: Asia/Jerusalem
             - name: PAPERLESS_WEBSERVER_WORKERS
@@ -125,20 +131,16 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /usr/src/paperless/data
-            - name: media
+            - name: data
               mountPath: /usr/src/paperless/media
-            - name: consume
+              subPath: media
+            - name: data
               mountPath: /usr/src/paperless/consume
+              subPath: consume
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: paperless-data
-        - name: media
-          persistentVolumeClaim:
-            claimName: paperless-media
-        - name: consume
-          persistentVolumeClaim:
-            claimName: paperless-consume
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
