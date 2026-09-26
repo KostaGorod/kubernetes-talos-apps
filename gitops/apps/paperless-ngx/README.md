@@ -19,6 +19,6 @@ Before syncing this Application for the first time:
    requirements in its [operator setup guide](https://tailscale.com/docs/kubernetes-operator/install-operator).
 
 PostgreSQL has a separate 10 GiB claim. Paperless data, media, and consume use
-one 10 GiB claim with `hcloud-volumes-encrypted`; the previous media and consume
-claims remain retained but unmounted. The claims use Hetzner CSI's 10 GB minimum
-volume size. Configure and test backups before storing important documents.
+one 10 GiB claim with `hcloud-volumes-encrypted`. The claims use Hetzner CSI's
+10 GB minimum volume size. Configure and test backups before storing important
+documents.

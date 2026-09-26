@@ -154,30 +154,6 @@ spec:
     requests:
       storage: 10Gi
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: paperless-media
-  namespace: paperless
-spec:
-  accessModes: [ReadWriteOnce]
-  storageClassName: hcloud-volumes-encrypted
-  resources:
-    requests:
-      storage: 10Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: paperless-consume
-  namespace: paperless
-spec:
-  accessModes: [ReadWriteOnce]
-  storageClassName: hcloud-volumes-encrypted
-  resources:
-    requests:
-      storage: 10Gi
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
