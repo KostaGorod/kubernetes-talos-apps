@@ -13,10 +13,11 @@ explicitly selected Argo CD Applications.
 - `bootstrap/argocd/talos-develop-root.yaml` connects the existing Argo CD to
   this public Git repository. It selects `main` and
   `gitops/clusters/talos-develop/apps`.
-- That directory is an explicit Kustomize allowlist, intentionally empty at
-  first. No additional workloads or shared/base services are selected. Add
-  reviewed `Application` manifests there and list each one in
-  `kustomization.yaml` before syncing the root.
+- That directory is the explicit Kustomize allowlist of child Applications.
+  The Paperless-ngx and Tailscale Operator Applications are selected there;
+  other workloads and shared/base services are not selected. Add reviewed
+  `Application` manifests there and list each one in `kustomization.yaml`
+  before syncing the root.
 - The root has no automated sync or pruning policy. Root sync and future app
   selection are deliberate operator actions.
 - The Argo CD Service is `ClusterIP`; no public ingress, NodePort, or
@@ -69,21 +70,19 @@ kubectl --kubeconfig /path/to/talos-hcloud/clusters/develop/.generated/kubeconfi
 ```
 
 Then open `https://<runner-tailscale-ip>:18443` from an authorized tailnet
-peer (the Argo CD TLS certificate may be self-signed). This port-forward is
-session-bound, not a durable UI endpoint. This repository creates no tailnet
-ingress/operator or public endpoint.
+peer (the Argo CD TLS certificate may be self-signed). For Paperless-ngx, use
+`https://paperless.myth-rudd.ts.net` after Tailscale provisioning is healthy.
+The Argo CD port-forward is session-bound, not a durable UI endpoint.
+Paperless-ngx is separately exposed through the Tailscale Kubernetes Operator
+as a private tailnet HTTPS service; no public ingress, Funnel, or Cloudflare
+Tunnel is configured.
 
-## Current security posture and outstanding work
+## Security
 
 This bootstrap leaves the existing chart settings in place: the `argocd-server`
 Service is ClusterIP, chart ingress and Dex are disabled, `server.insecure` is
 false, and the admin account is enabled. The live default AppProject allows any
 source repository, destination, and cluster resource; the live `argocd-rbac-cm`
-has empty policy overrides. This work has not added custom project/RBAC policy
-or narrowed Argo CD Secret access. The requested Secret RBAC work remains
-outstanding and requires separate design/review before describing this
-installation as hardened. The port-forward is an access path, not an
+has empty policy overrides. Custom project/RBAC restrictions and restricted
+Secret access are not configured. The port-forward is an access path, not an
 authentication or authorization change.
-
-Cloudflared was explicitly postponed and is not included or selected. No
-Cloudflare credentials or hostname are needed for this Argo-only stage.

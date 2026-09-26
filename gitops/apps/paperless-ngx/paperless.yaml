@@ -1,0 +1,200 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: paperless
+  namespace: paperless
+spec:
+  selector:
+    app.kubernetes.io/name: paperless
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless
+  namespace: paperless
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: paperless
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: paperless
+    spec:
+      # Avoid Kubernetes service-link variables overriding Paperless settings
+      # such as PAPERLESS_PORT with an address like tcp://<cluster-ip>:8000.
+      enableServiceLinks: false
+      initContainers:
+        - name: wait-for-dependencies
+          image: postgres:17.6-alpine
+          command:
+            - sh
+            - -ec
+            - until pg_isready -h postgres -U paperless -d paperless; do sleep 2; done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+        - name: wait-for-valkey
+          image: valkey/valkey:8.1.10-alpine
+          command:
+            - sh
+            - -ec
+            - until valkey-cli -h valkey ping; do sleep 2; done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+      containers:
+        - name: paperless
+          image: ghcr.io/paperless-ngx/paperless-ngx:3.2.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: PAPERLESS_DBENGINE
+              value: postgresql
+            - name: PAPERLESS_DBHOST
+              value: postgres
+            - name: PAPERLESS_DBNAME
+              value: paperless
+            - name: PAPERLESS_DBUSER
+              value: paperless
+            - name: PAPERLESS_DBPASS
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-runtime
+                  key: POSTGRES_PASSWORD
+            - name: PAPERLESS_REDIS
+              value: redis://valkey
+            - name: PAPERLESS_ADMIN_USER
+              value: paperless-admin
+            - name: PAPERLESS_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-runtime
+                  key: PAPERLESS_ADMIN_PASSWORD
+            - name: PAPERLESS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-runtime
+                  key: PAPERLESS_SECRET_KEY
+            - name: PAPERLESS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-runtime
+                  key: PAPERLESS_URL
+            - name: PAPERLESS_CSRF_TRUSTED_ORIGINS
+              valueFrom:
+                secretKeyRef:
+                  name: paperless-runtime
+                  key: PAPERLESS_CSRF_TRUSTED_ORIGINS
+            - name: PAPERLESS_TIME_ZONE
+              value: Asia/Jerusalem
+            - name: PAPERLESS_WEBSERVER_WORKERS
+              value: "1"
+            - name: PAPERLESS_OCR_LANGUAGE
+              value: eng
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 3Gi
+          startupProbe:
+            tcpSocket:
+              port: http
+            failureThreshold: 60
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          volumeMounts:
+            - name: data
+              mountPath: /usr/src/paperless/data
+            - name: data
+              mountPath: /usr/src/paperless/media
+              subPath: media
+            - name: data
+              mountPath: /usr/src/paperless/consume
+              subPath: consume
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: paperless-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-data
+  namespace: paperless
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: hcloud-volumes-encrypted
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-media
+  namespace: paperless
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: hcloud-volumes-encrypted
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-consume
+  namespace: paperless
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: hcloud-volumes-encrypted
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: paperless
+  namespace: paperless
+spec:
+  ingressClassName: tailscale
+  tls:
+    - hosts:
+        - paperless
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: paperless
+                port:
+                  name: http
