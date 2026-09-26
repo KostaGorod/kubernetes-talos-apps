@@ -78,7 +78,7 @@ spec:
                   name: paperless-runtime
                   key: POSTGRES_PASSWORD
             - name: PAPERLESS_REDIS
-              value: redis://valkey:6379
+              value: redis://valkey
             - name: PAPERLESS_ADMIN_USER
               value: paperless-admin
             - name: PAPERLESS_ADMIN_PASSWORD
@@ -197,4 +197,4 @@ spec:
               service:
                 name: paperless
                 port:
-                  number: 8000
+                  name: http
