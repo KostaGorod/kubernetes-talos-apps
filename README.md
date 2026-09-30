@@ -1,6 +1,6 @@
 # Kubernetes Talos Apps
 
-GitOps selection for the `talos-develop` Kubernetes cluster, using its existing
+GitOps selection for the `talos-primary` Kubernetes cluster, using its existing
 Argo CD installation. Cluster lifecycle and base cluster services remain owned
 by the Talos infrastructure repository; this repository holds the cluster's
 explicitly selected Argo CD Applications.
@@ -10,9 +10,9 @@ explicitly selected Argo CD Applications.
 - Argo CD is installed in namespace `argocd` by Helm chart `argo-cd` `9.5.11`
   (Argo CD `v3.3.9`). The chart remains Helm/bootstrap-owned; this setup does
   not transfer chart ownership to Argo CD.
-- `bootstrap/argocd/talos-develop-root.yaml` connects the existing Argo CD to
+- `bootstrap/argocd/talos-primary-root.yaml` connects the existing Argo CD to
   this public Git repository. It selects `main` and
-  `gitops/clusters/talos-develop/apps`.
+  `gitops/clusters/talos-primary/apps`.
 - That directory is the explicit Kustomize allowlist of child Applications.
   The Paperless-ngx and Tailscale Operator Applications are selected there;
   other workloads and shared/base services are not selected. Add reviewed
@@ -50,7 +50,7 @@ the infrastructure checkout (adjust the path for your local checkout):
 
 ```sh
 kubectl --kubeconfig /path/to/talos-hcloud/clusters/develop/.generated/kubeconfig \
-  apply -f bootstrap/argocd/talos-develop-root.yaml
+  apply -f bootstrap/argocd/talos-primary-root.yaml
 ```
 
 The root watches the committed `main` branch. Inspect it in Argo CD and sync it
