@@ -14,9 +14,9 @@ spec:
       values: |
         operatorConfig:
           defaultTags:
-            - tag:talos-develop-k8s-operator
+            - tag:primary-k8s-operator
         proxyConfig:
-          defaultTags: tag:talos-develop-service
+          defaultTags: tag:primary-k8s-proxy
   destination:
     server: https://kubernetes.default.svc
     namespace: tailscale

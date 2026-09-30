@@ -161,7 +161,7 @@ metadata:
   namespace: paperless
   annotations:
     tailscale.com/proxy-group: ingress
-    tailscale.com/tags: tag:talos-develop-service
+    tailscale.com/tags: tag:dev-app
 spec:
   ingressClassName: tailscale
   tls:

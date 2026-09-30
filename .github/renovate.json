@@ -7,7 +7,7 @@
     {
       "customType": "regex",
       "description": "Track the Tailscale Operator Helm chart version",
-      "managerFilePatterns": ["/gitops\\/clusters\\/talos-develop\\/apps\\/tailscale-operator\\.yaml$/"],
+      "managerFilePatterns": ["/gitops\\/clusters\\/talos-primary\\/apps\\/tailscale-operator\\.yaml$/"],
       "matchStrings": [
         "chart: tailscale-operator\\s+targetRevision: (?<currentValue>[^\\s]+)"
       ],

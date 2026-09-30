@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: talos-develop-apps
+  name: talos-primary-apps
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: https://github.com/KostaGorod/kubernetes-talos-apps.git
     targetRevision: main
-    path: gitops/clusters/talos-develop/apps
+    path: gitops/clusters/talos-primary/apps
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

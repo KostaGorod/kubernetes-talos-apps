@@ -14,8 +14,8 @@ Before syncing this Application for the first time:
    superuser name is `paperless-admin`.
 3. Ensure the `operator-oauth` Secret exists in `tailscale` with keys
    `client_id` and `client_secret`, and the tailnet policy grants the operator
-   ownership of `tag:talos-develop-k8s-operator` and permission to create
-   proxies tagged `tag:talos-develop-service`. Tailscale documents these
+   ownership of `tag:primary-k8s-operator` and permission to create
+   proxies tagged `tag:primary-k8s-proxy`. Tailscale documents these
    requirements in its [operator setup guide](https://tailscale.com/docs/kubernetes-operator/install-operator).
 
 PostgreSQL has a separate 10 GiB claim. Paperless data, media, and consume use

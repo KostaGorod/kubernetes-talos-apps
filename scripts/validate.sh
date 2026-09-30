@@ -24,8 +24,8 @@ helmfile -f bootstrap/argocd/helmfile.yaml lint
 printf '%s\n' '== Render pinned Argo CD Helm release =='
 helmfile -f bootstrap/argocd/helmfile.yaml template > "$rendered_argocd"
 
-printf '%s\n' '== Build talos-develop Application allowlist =='
-kustomize build gitops/clusters/talos-develop/apps > "$rendered_apps"
+printf '%s\n' '== Build talos-primary Application allowlist =='
+kustomize build gitops/clusters/talos-primary/apps > "$rendered_apps"
 kustomize build gitops/apps/paperless-ngx > "$rendered_paperless"
 
 printf '%s\n' '== Validate rendered Paperless-ngx resources =='
@@ -50,7 +50,7 @@ kubeconform \
   -summary \
   -schema-location default \
   -schema-location "$schema_location" \
-  bootstrap/argocd/talos-develop-root.yaml
+  bootstrap/argocd/talos-primary-root.yaml
 
 if [[ -s "$rendered_apps" ]]; then
   printf '%s\n' '== Validate selected Application schemas =='
