@@ -159,6 +159,9 @@ kind: Ingress
 metadata:
   name: paperless
   namespace: paperless
+  annotations:
+    tailscale.com/proxy-group: ingress
+    tailscale.com/tags: tag:talos-develop-service
 spec:
   ingressClassName: tailscale
   tls:

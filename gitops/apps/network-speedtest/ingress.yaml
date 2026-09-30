@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: speedtest
+  namespace: network-speedtest
+  annotations:
+    tailscale.com/proxy-group: ingress
+    tailscale.com/tags: tag:talos-develop-service
+spec:
+  ingressClassName: tailscale
+  tls:
+    - hosts:
+        - speedtest
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: openspeedtest
+                port:
+                  name: http

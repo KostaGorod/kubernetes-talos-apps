@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-platform
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/KostaGorod/kubernetes-talos-apps.git
+    targetRevision: main
+    path: gitops/platform/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true

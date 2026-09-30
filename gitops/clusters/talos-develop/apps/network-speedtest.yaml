@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: network-speedtest
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/KostaGorod/kubernetes-talos-apps.git
+    targetRevision: main
+    path: gitops/apps/network-speedtest
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: network-speedtest
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

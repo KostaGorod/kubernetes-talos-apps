@@ -3,3 +3,6 @@ kind: Kustomization
 resources:
   - paperless-ngx.yaml
   - tailscale-operator.yaml
+  - tailscale-proxygroup.yaml
+  - network-speedtest.yaml
+  - argocd-platform.yaml
