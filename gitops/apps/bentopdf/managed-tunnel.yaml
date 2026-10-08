@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bentopdf-managed-tunnel
+  namespace: bentopdf
+  labels:
+    app.kubernetes.io/name: bentopdf-managed-tunnel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: bentopdf-managed-tunnel
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: bentopdf-managed-tunnel
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2026.9.1@sha256:b269e8abd07a5bf6f3f4be65d5050b2174eca89c56a0241a8ff32a16aec454e4
+          imagePullPolicy: IfNotPresent
+          command: ["cloudflared"]
+          args:
+            - tunnel
+            - --no-autoupdate
+            - --metrics
+            - 0.0.0.0:2000
+            - run
+            - --token-file
+            - /etc/cloudflared/token/token
+          ports:
+            - name: metrics
+              containerPort: 2000
+              protocol: TCP
+          volumeMounts:
+            - name: tunnel-token
+              mountPath: /etc/cloudflared/token
+              readOnly: true
+          startupProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      volumes:
+        - name: tunnel-token
+          secret:
+            secretName: bentopdf-managed-tunnel-token
+            defaultMode: 0440
+            items:
+              - key: token
+                path: token

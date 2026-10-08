@@ -3,6 +3,10 @@
   "extends": ["config:recommended", ":dependencyDashboard", "schedule:weekly"],
   "labels": ["dependencies"],
   "prHourlyLimit": 4,
+  "kubernetes": {
+    "managerFilePatterns": ["/^gitops\\/apps\\/bentopdf\\/.+\\.ya?ml$/"],
+    "pinDigests": true
+  },
   "customManagers": [
     {
       "customType": "regex",

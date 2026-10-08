@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bentopdf
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/KostaGorod/kubernetes-talos-apps.git
+    targetRevision: main
+    path: gitops/apps/bentopdf
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: bentopdf
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
