@@ -5,4 +5,5 @@ resources:
   - tailscale-operator.yaml
   - tailscale-proxygroup.yaml
   - network-speedtest.yaml
+  - bentopdf.yaml
   - argocd-platform.yaml
