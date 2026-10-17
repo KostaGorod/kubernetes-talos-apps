@@ -8,3 +8,4 @@ resources:
   - bentopdf.yaml
   - argocd-platform.yaml
   - hubble.yaml
+  - private-apps.yaml
