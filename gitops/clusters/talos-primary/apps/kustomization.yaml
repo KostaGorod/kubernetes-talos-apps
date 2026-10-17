@@ -7,3 +7,4 @@ resources:
   - network-speedtest.yaml
   - bentopdf.yaml
   - argocd-platform.yaml
+  - hubble.yaml
