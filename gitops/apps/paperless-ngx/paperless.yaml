@@ -110,7 +110,9 @@ spec:
             - name: PAPERLESS_THREADS_PER_WORKER
               value: "1"
             - name: PAPERLESS_OCR_LANGUAGE
-              value: eng
+              value: eng+heb
+            - name: PAPERLESS_OCR_LANGUAGES
+              value: heb
           resources:
             requests:
               cpu: 500m
