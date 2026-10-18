@@ -105,6 +105,10 @@ spec:
               value: Asia/Jerusalem
             - name: PAPERLESS_WEBSERVER_WORKERS
               value: "1"
+            - name: PAPERLESS_TASK_WORKERS
+              value: "1"
+            - name: PAPERLESS_THREADS_PER_WORKER
+              value: "1"
             - name: PAPERLESS_OCR_LANGUAGE
               value: eng
           resources:
