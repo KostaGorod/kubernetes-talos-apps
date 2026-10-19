@@ -9,3 +9,4 @@ resources:
   - argocd-platform.yaml
   - hubble.yaml
   - private-apps.yaml
+  - cloudnative-pg.yaml
