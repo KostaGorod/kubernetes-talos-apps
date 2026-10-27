@@ -25,10 +25,10 @@ explicitly selected Argo CD Applications.
 
 ## Dependency updates
 
-The manual **Renovate now** Actions button, hosted Renovate, and required-check
-setup are described in [dependency updates](docs/dependency-updates.md).
+The daily **Renovate** workflow and its **Run workflow** button are described
+in [dependency updates](docs/dependency-updates.md).
 This covers BentoPDF and its Cloudflare connector; Argo deploys their merged
-image pins. The manual runner uses GitHub's built-in token, with no custom credentials.
+image pins. The runner uses GitHub's built-in token, with no custom credentials.
 
 ## Bootstrap and validation
 
