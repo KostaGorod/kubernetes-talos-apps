@@ -42,7 +42,8 @@ to the manual Renovate job.
 
 The job has Contents/Pull requests write and Issues read for Renovate's
 repository initialization. The Dependency Dashboard is disabled on this path,
-so Issues write is unnecessary. No cluster credentials, repository checkout,
+so Issues write is unnecessary. Checkout loads only trusted workflow/report code
+with persisted Git credentials disabled. No cluster credentials,
 PR-triggered privileged execution, Docker socket, install scripts, plugins or
 post-upgrade commands are used. Execution is allowlisted to this repository's
 trusted `main`, serializes manual runs and times out after 15 minutes. The
@@ -55,6 +56,27 @@ pending `renovate-manual/` branch has no open PR, the job fails with an explicit
 message instead of presenting branch creation alone as success. Renovate can
 catch PR-creation errors and exit zero, so its exit status is not sufficient.
 The check verifies PR existence, not successful CI, review, merge or deployment.
+
+## Read the before/after report
+
+Each manual run has named steps to record starting versions, execute official
+Renovate, and report the outcome. The final step writes the same readable rows
+to its log and the Actions **Summary** page, even if the updater fails:
+
+- **Main before / Main after** show actual image tags and shortened digests in
+  committed main at each snapshot. A concurrent main change is labeled rather
+  than attributed to Renovate.
+- **Proposed in PR** and its clickable PR link show the image pin proposed by
+  an open Renovate update PR, not an installed version.
+- **PR created / updated / reused** distinguish new PRs from existing proposals.
+- **Kept on main; no PR proposal** means no open proposal was found for that
+  dependency, not proof that registry lookup succeeded or that no release exists.
+- Missing PRs for pending update branches remain a failure. API/report failures
+  are reported as unavailable, never silently converted into unchanged success.
+
+The manual workflow never merges or deploys. The table explicitly says so.
+The normal PR CI exercises report tests and a live read-only report smoke;
+this tests rendering and GitHub reads without starting another update run.
 
 GitHub's built-in token can create update PRs, but GitHub requires manual
 approval for their workflow runs. A pending or skipped check is not a pass.

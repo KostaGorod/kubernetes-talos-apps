@@ -20,6 +20,9 @@ jobs:
     timeout-minutes: 15
     env:
       MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.0.0
         with:
@@ -37,6 +40,17 @@ jobs:
         run: >-
           npx --yes --ignore-scripts --package=renovate@44.186.6
           renovate-config-validator --strict --no-global .github/renovate.json
+      - name: Test Renovate report contracts
+        run: node --test .github/scripts/renovate-report.test.cjs
+      - name: Exercise version report against live read-only GitHub data
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const { snapshot, report } = require('./.github/scripts/renovate-report.cjs');
+            const before = await snapshot({ github, context });
+            await report({ github, context, core, before, outcome: 'read-only report smoke' });
   renovate-action-smoke:
     name: Renovate Action read-only smoke
     if: github.event_name == 'pull_request'
