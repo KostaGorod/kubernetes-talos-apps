@@ -14,7 +14,7 @@ jobs:
     if: >-
       github.repository == 'KostaGorod/kubernetes-talos-apps' &&
       github.ref == 'refs/heads/main'
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: write
@@ -22,17 +22,15 @@ jobs:
       issues: read
     steps:
       - name: Run Renovate now and create update PRs
-        run: >-
-          npx --yes --ignore-scripts --package=renovate@44.186.6 renovate
-          --automerge=false
-          --dependency-dashboard=false
-          --branch-prefix=renovate-manual/
-          --enabled-managers='["kubernetes"]'
-          --schedule='["at any time"]'
-          --pr-hourly-limit=0
-          --pr-concurrent-limit=0
+        uses: renovatebot/github-action@2804199d260ad00c1fae0e9e842888369391c776  # v46.3.10
+        with:
+          token: ${{ github.token }}
+          renovate-image: >-
+            ghcr.io/renovatebot/renovate:44.186.6@sha256:461ab1d41744ecd9e16607a7f939183c783a19ce1968f32c87c122759676df04
+          mount-docker-socket: 'false'
+          docker-volumes: ''
+          env-regex: '^(?:RENOVATE_[A-Z_]+|LOG_LEVEL)$'
         env:
-          RENOVATE_TOKEN: ${{ github.token }}
           RENOVATE_PLATFORM: github
           RENOVATE_BINARY_SOURCE: global
           RENOVATE_AUTODISCOVER: 'false'
@@ -44,3 +42,36 @@ jobs:
           RENOVATE_ALLOW_PLUGINS: 'false'
           RENOVATE_ALLOWED_COMMANDS: '[]'
           RENOVATE_EXIT_CODE_FOR_ERRORS: 'true'
+          RENOVATE_FORCE: >-
+            {"automerge":false,"dependencyDashboard":false,"branchPrefix":"renovate-manual/",
+            "enabledManagers":["kubernetes"],"schedule":["at any time"],
+            "prHourlyLimit":0,"prConcurrentLimit":0}
+      - name: Verify Renovate created PRs for pending update branches
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            const refs = await github.paginate(github.rest.git.listMatchingRefs, {
+              owner, repo, ref: 'heads/renovate-manual/',
+            });
+            const missing = [];
+            for (const ref of refs) {
+              const branch = ref.ref.replace('refs/heads/', '');
+              const comparison = await github.rest.repos.compareCommitsWithBasehead({
+                owner, repo, basehead: `main...${ref.object.sha}`,
+              });
+              if (comparison.data.ahead_by === 0) continue;
+              const prs = await github.paginate(github.rest.pulls.list, {
+                owner, repo, state: 'open', base: 'main', head: `${owner}:${branch}`,
+              });
+              if (prs.length === 0) missing.push(branch);
+              for (const pr of prs) core.info(`Renovate update PR: ${pr.html_url}`);
+            }
+            if (missing.length > 0) {
+              core.setFailed(`Renovate left update branches without PRs: ${missing.join(', ')}. ` +
+                'Check the Renovate log and Settings > Actions > General > ' +
+                'Allow GitHub Actions to create and approve pull requests.');
+            } else {
+              core.info('Every pending manual update branch has an open PR, or no update is pending.');
+            }

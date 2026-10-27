@@ -37,3 +37,37 @@ jobs:
         run: >-
           npx --yes --ignore-scripts --package=renovate@44.186.6
           renovate-config-validator --strict --no-global .github/renovate.json
+  renovate-action-smoke:
+    name: Renovate Action read-only smoke
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - uses: renovatebot/github-action@2804199d260ad00c1fae0e9e842888369391c776  # v46.3.10
+        with:
+          token: ${{ github.token }}
+          renovate-image: >-
+            ghcr.io/renovatebot/renovate:44.186.6@sha256:461ab1d41744ecd9e16607a7f939183c783a19ce1968f32c87c122759676df04
+          mount-docker-socket: 'false'
+          docker-volumes: ''
+          env-regex: '^(?:RENOVATE_[A-Z_]+|LOG_LEVEL)$'
+        env:
+          RENOVATE_PLATFORM: github
+          RENOVATE_BINARY_SOURCE: global
+          RENOVATE_AUTODISCOVER: 'false'
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+          RENOVATE_ONBOARDING: 'false'
+          RENOVATE_REQUIRE_CONFIG: required
+          RENOVATE_DRY_RUN: lookup
+          RENOVATE_ALLOW_SCRIPTS: 'false'
+          RENOVATE_ALLOW_PLUGINS: 'false'
+          RENOVATE_ALLOWED_COMMANDS: '[]'
+          RENOVATE_EXIT_CODE_FOR_ERRORS: 'true'
+          RENOVATE_FORCE: >-
+            {"automerge":false,"dependencyDashboard":false,"branchPrefix":"renovate-manual/",
+            "enabledManagers":["kubernetes"],"schedule":["at any time"],
+            "prHourlyLimit":0,"prConcurrentLimit":0}
