@@ -33,8 +33,8 @@ spec:
       enableServiceLinks: false
       containers:
         - name: bentopdf
-          image: >-
-            ghcr.io/alam00000/bentopdf-simple:v2.8.8@sha256:3d62b8f8eece5fe947026ac3925ff08fda245b3d6ba2c3916b94da91e0010c74
+          # Renovate's Kubernetes manager requires a single-line image reference.
+          image: ghcr.io/alam00000/bentopdf-simple:v2.8.8@sha256:3d62b8f8eece5fe947026ac3925ff08fda245b3d6ba2c3916b94da91e0010c74  # yamllint disable-line rule:line-length
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

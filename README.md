@@ -23,6 +23,13 @@ explicitly selected Argo CD Applications.
 - The Argo CD Service is `ClusterIP`; no public ingress, NodePort, or
   Cloudflare Tunnel is configured here.
 
+## Dependency updates
+
+Official hosted Renovate, scoped image automerge, and the one-time App installation
+and required-check setup are described in [dependency updates](docs/dependency-updates.md).
+This covers BentoPDF and its Cloudflare connector; Argo deploys their merged
+image pins. No custom Renovate credentials or updater workflow are needed.
+
 ## Bootstrap and validation
 
 Install mise with its official Linux installer if needed:
