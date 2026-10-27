@@ -2,133 +2,106 @@
 
 ## Plan and scope
 
-Complete the existing GitOps path without an image updater in the cluster:
+Use the [official hosted Mend Renovate App](https://github.com/apps/renovate),
+installed only on `kubernetes-talos-apps`. It is free for public and private
+repositories and manages its own credentials and execution. No PAT, custom App,
+private-key secret or self-hosted updater workflow is needed.
 
-1. Run Renovate daily against this repository only.
-2. Open digest-pinned image update PRs and run the normal read-only PR validation.
-3. Automerge only the approved image updates after validation passes.
-4. Let the existing BentoPDF Argo CD Application deploy the merged manifest.
+1. The hosted service processes the repository and opens digest-pinned update PRs.
+2. Normal read-only PR validation checks the proposed manifests and config.
+3. Renovate merges only the approved image updates after validation passes.
+4. The existing BentoPDF Argo CD Application deploys the merged manifest.
 
-The workflow runs at `03:43 UTC` daily and supports manual dispatch on `main`.
-GitHub may delay scheduled runs. The weekly Renovate window is removed, so
-updates are eligible on every run. No workload version is changed by this PR.
+The old weekly-only window is removed. Updates are eligible on every hosted
+run, not restricted to a fixed time in this repository. Mend controls the job
+queue and cadence. Its current scheduler documentation lists active jobs every
+four hours and inactive/onboarding jobs daily; processing is not an exact-time
+SLA. There is no repository cron or manual Actions updater to dispatch.
 
 | Dependency | Detection | Merge policy |
 | --- | --- | --- |
-| `cloudflare/cloudflared` | Kubernetes image in `gitops/apps/bentopdf` | Minor, patch and digest updates automatic |
-| `ghcr.io/alam00000/bentopdf-simple` | Kubernetes image in `gitops/apps/bentopdf` | Minor, patch and digest updates automatic |
+| `cloudflare/cloudflared` | Kubernetes image in `gitops/apps/bentopdf` | Minor, patch and digest automatic |
+| `ghcr.io/alam00000/bentopdf-simple` | Kubernetes image in `gitops/apps/bentopdf` | Minor, patch and digest automatic |
 | Either image, major release | Same manager | Manual review and merge |
 | Tailscale Operator chart | Existing custom Helm manager | Manual review and merge |
 | Other workloads and workflow/tool pins | Outside enabled manager scope | Manual maintenance |
 
 Cloudflared uses calendar versions. A new month is a minor update; a new year
-is a major update and remains manual. Minor/patch labels are not a guarantee of
-runtime compatibility. CI validates configuration, not a running tunnel or a
-browser PDF operation. Argo readiness probes provide rollout feedback, not an
-automated functional test or rollback.
+is a major update and remains manual. CI validates configuration, not a running
+tunnel or browser PDF operation. Minor/patch labels do not guarantee runtime
+compatibility. Argo readiness probes provide rollout feedback, not functional
+tests or automatic rollback. This source change does not bump either image.
 
-The Kubernetes manager reads image references on a single line. Keep the
-BentoPDF `image:` scalar on one line with its scoped line-length lint exception;
-a folded scalar is valid Kubernetes YAML but is not extracted by this manager.
-Both images retain immutable digests. Preserve `--no-autoupdate` in cloudflared;
-container upgrades belong in Git, not inside the running container.
+Keep the BentoPDF `image:` reference on one line with its scoped lint exception.
+The Kubernetes manager misses folded YAML image scalars. Preserve immutable
+digests and cloudflared's `--no-autoupdate`; container upgrades belong in Git.
 
-## Authentication and merge safety
+## Installation and required CI
 
-Use a dedicated GitHub App installed on **this repository only**. Do not reuse
-the read-only Argo repository App or widen its permissions. Supply:
+These external setup steps are not performed by merging source files:
 
-| Repository permission | Level | Purpose |
-| --- | --- | --- |
-| Contents | Write | Dependency branches and squash merges |
-| Pull requests | Write | Create and maintain update PRs |
-| Issues | Read | Renovate repository initialization |
-| Checks | Read | Observe GitHub Actions results |
-| Commit statuses | Write | Renovate config-validation status and status reads |
-| Metadata | Read | Repository discovery and active-rule lookup |
+1. Before activating this automerge config, protect `main` with a branch rule
+   or active ruleset requiring `Validate GitOps configuration` from GitHub
+   Actions, integration ID `15368`. Require branches to be up to date before
+   merging. Do not give Renovate a bypass or disable the check. If human review
+   is mandatory, unattended merging will wait for that review.
+2. Open the [official Renovate App installation](https://github.com/apps/renovate/installations/new),
+   select **Only select repositories**, and select `kubernetes-talos-apps`.
+   Review the permission screen before approving. If already installed, add
+   only this repository to its installation. No account-wide selection is needed.
+3. Merge this PR after source review and green CI. Renovate reads configuration
+   from the default branch. Follow any actual onboarding PR if one is created;
+   the repository already contains `.github/renovate.json`.
+4. Check repository status and job logs in the [Mend Developer Portal](https://developer.mend.io/)
+   and inspect resulting dependency PRs and their checks.
 
-No Administration, Actions-write, Workflows-write or cluster access is needed.
-The workflow explicitly narrows the installation token to this repository and
-these permissions. The token expires within an hour and is revoked when the
-job finishes. The default `GITHUB_TOKEN` has no granted permissions. Renovate
-runs only for trusted `main` schedule/manual events, never PR events. Install
-scripts and post-upgrade shell commands are disabled.
+The official App requests its published permission set, including repository
+content/PR writes, status/check and issue access, workflow writes, and some
+read-only metadata/security/administration access. Restricting the installation
+to this repository is the access boundary. The configured managers do not
+update workflow files, but that does not narrow the App's granted permissions.
+Mend temporarily clones the repository and retains dependency/version and PR
+metadata as described in its security/privacy documentation. It receives no
+cluster credentials. Do not install it on unrelated repositories for this setup.
 
-An App token is intentional. GitHub's built-in `GITHUB_TOKEN` can create PRs,
-but their workflows require manual approval. Falling back to that token would
-make this unattended update path depend on a person approving every PR check.
-The normal `pull_request` validation remains unprivileged, with a read-only
-token and no App private key. There is no `pull_request_target` execution or
-privileged dispatch of PR code.
+Renovate performs squash PR automerge with `platformAutomerge=false` and
+`ignoreTests=false`. GitHub's repository-wide **Allow auto-merge** toggle is not
+required. A later hosted run merges an eligible green PR; this is not immediate.
+Major image and operator-chart updates remain manual. Missing, pending or
+failing validation must block merging through the required-check protection.
+Unlike the removed custom workflow, there is no repository preflight that
+checks this policy. Configure protection before enabling the automerge config.
 
-Renovate performs PR automerge itself with `platformAutomerge=false`,
-`ignoreTests=false` and squash merging. GitHub's repository-wide **Allow
-auto-merge** setting is not required for this mode and can remain disabled.
-A subsequent Renovate run merges an eligible PR after CI passes, so daily runs
-can add another day of delay. Renovate normally merges at most one PR per
-base branch per run. Pending, failing or absent tests must not be bypassed.
+Normal `pull_request` validation keeps a read-only token and no Renovate secret.
+App-created PRs use normal GitHub event delivery, not the built-in Actions-token
+PR approval workaround. No `pull_request_target` or privileged PR execution is
+introduced. Verify the first real PR check runs without manual approval.
 
-## One-time activation after approval
+## Verification and maintenance
 
-These are external settings, not effects of merging source files:
+Source CI runs YAML/action lint, bootstrap/selection validation, BentoPDF and
+tunnel Kustomize/schema validation, and strict Renovate config validation.
+The pinned CLI version is a validation tool only; Mend manages the hosted
+engine version independently. Maintain the CI validator and action pins manually.
 
-1. Create the dedicated App, grant only the permissions above, disable webhooks
-   if unused, and install it only on `kubernetes-talos-apps`.
-2. Store its client ID in repository variable `RENOVATE_APP_CLIENT_ID` and its
-   private key in repository Actions secret `RENOVATE_APP_PRIVATE_KEY` through
-   the approved secret-handling route. Never put the key in Git or PR text.
-3. Add an **active branch ruleset** for `refs/heads/main`. Require the status
-   check `Validate GitOps configuration`, bind its expected source to GitHub
-   Actions, integration ID `15368`, and enable **Require branches to be up to
-   date before merging**. Do not give the Renovate App a bypass. Do not require
-   human PR approval for the automated scope unless manual approval is desired.
-   Classic branch protection alone is not recognized by the workflow preflight.
-4. Merge the source PR after its validation and review pass. No GitHub App,
-   secret, variable, ruleset or workload rollout is provisioned by that merge.
-5. Dispatch and inspect the first real run:
+After installation and merge, verify:
 
-   ```sh
-   gh workflow run renovate.yml --repo KostaGorod/kubernetes-talos-apps --ref main
-   gh run list --repo KostaGorod/kubernetes-talos-apps --workflow renovate.yml
-   gh pr list --repo KostaGorod/kubernetes-talos-apps --search 'head:renovate/'
-   ```
+- Hosted logs show both image dependencies and dependency PRs carry new digests.
+- `Validate GitOps configuration` runs on the actual update PR without manual
+  workflow approval, and only an eligible green non-major PR is automerged.
+- Argo's `bentopdf` Application becomes `Synced` and `Healthy` at merged `main`,
+  with both Deployments ready on their intended images. Existing child workload
+  changes do not require a manual root sync.
+- Cloudflared reports its expected version and BentoPDF's existing HTTPS URL
+  works. Exercise a synthetic browser PDF operation before claiming functional
+  acceptance. Source CI alone does not prove any live update/merge/deploy step.
 
-The updater fails before dependency writes if its App token cannot be created
-or the strict named GitHub Actions check is not required by an active ruleset.
-It does not create or repair security policy automatically. A ruleset bypass
-would defeat enforcement even if the required-check preflight passed, so leave
-the App off every bypass list.
+For missing PRs, check installation scope and hosted job status, then extraction
+and registry lookup. For an unmerged PR, inspect required checks, conflicts,
+version classification and the next hosted run. For an old running image after
+merge, inspect Argo's compared revision and Deployment rollout.
 
-## Initial acceptance and routine checks
-
-Source CI runs YAML/action lint, the maintained bootstrap/selection validation,
-BentoPDF plus cloudflared Kustomize/schema validation, and strict Renovate
-configuration validation using the same engine version as the updater.
-
-After activation, verify the actual chain rather than treating green source CI
-as proof of deployment:
-
-- A trusted-main Renovate run succeeds and its logs show both image dependencies.
-- The resulting image PR contains the expected version and digest, and its
-  `Validate GitOps configuration` check runs without manual workflow approval.
-- After green CI, the next Renovate run merges only the eligible non-major PR.
-  Major image updates and Tailscale Operator updates remain manual.
-- Argo's `bentopdf` Application reaches `Synced` and `Healthy` at the merged
-  `main` revision. Its automatic sync is already enabled; the root does not
-  need a manual sync for changes to an existing child's workload manifests.
-- Both Deployments become ready with the new images. Verify cloudflared's
-  version and the existing published BentoPDF HTTPS URL. Separately exercise
-  a synthetic browser PDF operation before claiming functional acceptance.
-
-For missing PRs, check the updater run first, then extraction and registry
-lookup. For an unmerged PR, inspect its checks, merge conflicts, major-version
-classification and the next updater run. For an old running image after merge,
-inspect Argo's compared revision and Deployment rollout. A healthy updater in
-another repository is not evidence that this repository was processed.
-
-Maintain the pinned Renovate version in both workflows together. GitHub Actions
-and engine pins are intentionally not self-updated. To validate locally with
-Node 24 installed:
+Local checks with Node 24 installed:
 
 ```sh
 mise run validate
@@ -139,19 +112,26 @@ RENOVATE_CONFIG_FILE=.github/renovate.json LOG_LEVEL=debug \
   --platform=local --onboarding=false --require-config=optional --dry-run=lookup
 ```
 
-Local lookup contacts real image/chart registries but does not create PRs or
-prove App permissions, automatic checks, merging or a deployed rollout.
+Lookup contacts real registries without creating PRs. It does not prove hosted
+installation, automatic checks/merge or deployed behavior. With install scripts
+disabled the optional native RE2 module may be unavailable; the CLI reports its
+JavaScript RegExp fallback explicitly.
 
 ## Pause and recovery
 
-Disable the `Renovate` workflow to stop new update processing and Renovate-owned
-merges. Existing PRs remain available for manual review. Revert an affected
-image manifest to its previous known-good version and digest through a reviewed
-PR; Argo then reconciles that Git revision. Readiness failures do not trigger
-an automatic Git revert. Preserve the working tunnel token and hostname routes.
+Set top-level `automerge=false` and remove the scoped `automerge=true` rule via
+reviewed config change to stop automatic merges while retaining update PRs.
+To stop all processing, set top-level `enabled=false`, or use GitHub's App
+installation settings to remove this repository from the selected installation.
+There is no updater Actions workflow to disable. Verify the hosted status after
+pausing. Revert a bad image through a reviewed PR to its previous known-good
+tag and digest; Argo reconciles that revision. Readiness failure does not cause
+an automatic Git revert. Preserve tunnel credentials and hostname routes.
 
 ## References
 
-- [Renovate automerge behavior](https://docs.renovatebot.com/key-concepts/automerge/)
-- [Official App-token action and permission scoping](https://github.com/actions/create-github-app-token/tree/v3.3.0)
-- [Built-in token PR workflow approval constraint](https://github.com/renovatebot/github-action#token)
+- [Official App and installation](https://github.com/apps/renovate)
+- [Hosted onboarding](https://docs.renovatebot.com/getting-started/installing-onboarding/)
+- [Hosted job scheduling](https://docs.renovatebot.com/mend-hosted/job-scheduling/)
+- [Permissions and privacy](https://docs.renovatebot.com/security-and-permissions/)
+- [Automerge behavior](https://docs.renovatebot.com/key-concepts/automerge/)

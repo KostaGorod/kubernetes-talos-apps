@@ -25,10 +25,10 @@ explicitly selected Argo CD Applications.
 
 ## Dependency updates
 
-Daily Renovate execution, scoped image automerge, and the one-time GitHub App
+Official hosted Renovate, scoped image automerge, and the one-time App installation
 and required-check setup are described in [dependency updates](docs/dependency-updates.md).
 This covers BentoPDF and its Cloudflare connector; Argo deploys their merged
-image pins. Workflow source alone does not activate GitHub credentials or policy.
+image pins. No custom Renovate credentials or updater workflow are needed.
 
 ## Bootstrap and validation
 
