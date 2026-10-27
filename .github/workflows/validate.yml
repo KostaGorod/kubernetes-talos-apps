@@ -60,6 +60,8 @@ jobs:
       contents: read
       issues: read
       pull-requests: read
+      checks: read
+      statuses: read
     steps:
       - uses: renovatebot/github-action@2804199d260ad00c1fae0e9e842888369391c776  # v46.3.10
         with:
@@ -82,6 +84,6 @@ jobs:
           RENOVATE_ALLOWED_COMMANDS: '[]'
           RENOVATE_EXIT_CODE_FOR_ERRORS: 'true'
           RENOVATE_FORCE: >-
-            {"automerge":false,"dependencyDashboard":false,"branchPrefix":"renovate-manual/",
+            {"platformAutomerge":true,"dependencyDashboard":false,"branchPrefix":"renovate-manual/",
             "enabledManagers":["kubernetes"],"schedule":["at any time"],
             "prHourlyLimit":0,"prConcurrentLimit":0}

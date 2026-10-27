@@ -11,7 +11,8 @@ const ref = (branch, sha) => ({ ref: `refs/heads/${branch}`, object: { sha } });
 const pr = (number, branch, sha) => ({ number, head: { ref: branch, sha }, base: { sha: 'base-sha' } });
 
 // Simulate only GitHub's documented API boundary; report generation stays real.
-function api({ prs = [], refs = [], proposals = {}, ahead = 1, contentError, revision = 'main-sha' } = {}) {
+function api({ prs = [], closedPrs = [], refs = [], proposals = {}, ahead = 1, contentError,
+  revision = 'main-sha' } = {}) {
   return {
     rest: {
       repos: {
@@ -24,10 +25,13 @@ function api({ prs = [], refs = [], proposals = {}, ahead = 1, contentError, rev
         compareCommitsWithBasehead: async () => ({ data: { ahead_by: ahead,
           merge_base_commit: { sha: 'base-sha' } } }),
       },
-      pulls: { list: 'pulls' },
+      pulls: { list: 'pulls', get: async ({ pull_number }) => ({
+        data: closedPrs.find((item) => item.number === pull_number),
+      }) },
       git: { listMatchingRefs: 'refs' },
     },
-    paginate: async (method) => method === 'pulls' ? prs : refs,
+    paginate: async (method, options) => method === 'pulls' ?
+      (options.state === 'closed' ? closedPrs : prs) : refs,
   };
 }
 function output() {
@@ -58,7 +62,7 @@ test('reports created PR with before/after main separate from the proposal', asy
   assert.match(summary, /PR created/);
   assert.match(summary, /\/pull\/14/);
   assert.match(summary, /Kept on main; no PR proposal/);
-  assert.match(summary, /No merge or deployment/);
+  assert.match(summary, /CI-gated GitHub auto-merge; deployment is not verified/);
   assert.equal(core.failures.length, 0);
 });
 
@@ -118,4 +122,45 @@ test('stale PR does not report an unchanged sibling image as a proposed downgrad
   assert.equal(bento[3], 'None');
   assert.match(bento[4], /Main changed concurrently/);
   assert.match(core.summaries.join(''), /Main advanced during the run/);
+});
+
+test('reports native auto-merge as enabled, not already merged', async () => {
+  const before = await snapshot({ github: api(), context });
+  const branch = 'renovate-manual/bento';
+  const core = output();
+  await report({ github: api({ prs: [{ ...pr(14, branch, 'new-sha'), auto_merge: {} }],
+    proposals: { 'new-sha': { ...files, 'gitops/apps/bentopdf/app.yaml':
+      'ghcr.io/alam00000/bentopdf-simple:2.8.10@sha256:ccc' } },
+  }), context, core, before, outcome: 'success' });
+  assert.match(core.summaries.join(''), /PR created; auto-merge enabled/);
+  assert.doesNotMatch(core.summaries.join(''), /PR merged/);
+});
+
+test('recognizes an existing PR merged during the run, including a retained squash branch', async () => {
+  const branch = 'renovate-manual/bento';
+  const old = pr(14, branch, 'new-sha');
+  const before = await snapshot({ github: api({ prs: [old] }), context });
+  const updated = { ...files, 'gitops/apps/bentopdf/app.yaml':
+    'ghcr.io/alam00000/bentopdf-simple:2.8.10@sha256:ccc' };
+  const core = output();
+  await report({ github: api({ closedPrs: [{ ...old, merged_at: '2026-10-27T00:00:00Z' }],
+    revision: 'advanced-main', refs: [ref(branch, 'new-sha')], ahead: 1,
+    proposals: { 'new-sha': updated, 'advanced-main': updated },
+  }), context, core, before, outcome: 'success' });
+  assert.equal(core.failures.length, 0);
+  assert.match(core.summaries.join(''), /PR merged/);
+  assert.match(core.summaries.join(''), /\/pull\/14/);
+});
+
+test('closed unmerged PRs and re-used branches do not satisfy the missing-PR gate', async () => {
+  const branch = 'renovate-manual/orphan';
+  const before = await snapshot({ github: api(), context });
+  for (const closed of [pr(14, branch, 'pending-sha'),
+    { ...pr(14, branch, 'old-sha'), merged_at: '2026-10-27T00:00:00Z' }]) {
+    const core = output();
+    await report({ github: api({ closedPrs: [closed], refs: [ref(branch, 'pending-sha')] }),
+      context, core, before, outcome: 'success' });
+    assert.equal(core.failures.length, 1);
+    assert.match(core.failures[0], /without PRs/);
+  }
 });

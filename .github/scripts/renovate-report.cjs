@@ -28,6 +28,7 @@ async function snapshot({ github, context }) {
   ]);
   return { revision, images, prs: prs.filter((pr) => pr.head.ref.startsWith(prefix)).map((pr) => ({
     number: pr.number, head: { ref: pr.head.ref, sha: pr.head.sha }, base: { sha: pr.base.sha },
+    autoMerge: Boolean(pr.auto_merge),
   })) };
 }
 
@@ -53,9 +54,21 @@ async function report({ github, context, core, before, outcome }) {
     const { data } = await github.rest.repos.compareCommitsWithBasehead({
       ...repo, basehead: `${after.revision}...${ref.object.sha}`,
     });
-    if (data.ahead_by > 0 && !after.prs.some((pr) => pr.head.ref === branch)) missing.push(branch);
+    if (data.ahead_by > 0 && !after.prs.some((pr) => pr.head.ref === branch)) {
+      const closed = await github.paginate(github.rest.pulls.list, {
+        ...repo, state: 'closed', base: 'main', head: `${repo.owner}:${branch}`, per_page: 100,
+      });
+      if (!closed.some((pr) => pr.merged_at && pr.head.sha === ref.object.sha)) missing.push(branch);
+    }
   }
-  const proposals = await Promise.all(after.prs.map(async (pr) => {
+  const merged = [];
+  for (const old of before?.prs ?? []) {
+    if (!after.prs.some((pr) => pr.number === old.number)) {
+      const { data } = await github.rest.pulls.get({ ...repo, pull_number: old.number });
+      if (data.merged_at) merged.push(data);
+    }
+  }
+  const proposals = await Promise.all([...after.prs, ...merged].map(async (pr) => {
     const { data } = await github.rest.repos.compareCommitsWithBasehead({
       ...repo, basehead: `${pr.base.sha}...${pr.head.sha}`,
     });
@@ -69,7 +82,7 @@ async function report({ github, context, core, before, outcome }) {
   for (const target of targets) {
     const current = after.images[target.name];
     const changes = proposals.filter((item) => item.images[target.name] !== item.baseImages[target.name] &&
-      item.images[target.name] !== current);
+      (item.pr.merged_at || item.images[target.name] !== current));
     const baseline = before?.images[target.name];
     if (changes.length === 0) {
       const status = baseline && baseline !== current ? 'Main changed concurrently; no PR proposal' :
@@ -79,8 +92,9 @@ async function report({ github, context, core, before, outcome }) {
     }
     for (const { pr, images } of changes) {
       const old = oldPrs.get(pr.number);
-      const status = !before ? 'Open PR; baseline unavailable' : !old ? 'PR created' :
+      let status = pr.merged_at ? 'PR merged' : !before ? 'Open PR; baseline unavailable' : !old ? 'PR created' :
         old.head.sha === pr.head.sha ? 'PR reused' : 'PR updated';
+      if (pr.autoMerge || pr.auto_merge) status += '; auto-merge enabled';
       const link = `https://github.com/${repo.owner}/${repo.repo}/pull/${pr.number}`;
       rows.push([target.name, baseline ? version(baseline) : 'Unavailable', version(current),
         version(images[target.name]), status, `[#${pr.number}](${link})`]);
@@ -90,10 +104,10 @@ async function report({ github, context, core, before, outcome }) {
   markdown += '| Dependency | Main before | Main after | Proposed in PR | Result | PR |\n';
   markdown += '| --- | --- | --- | --- | --- | --- |\n';
   for (const row of rows) markdown += `| ${row.map(escape).join(' | ')} |\n`;
-  markdown += '\nVersions include shortened image digests. No merge or deployment is performed by this workflow.\n';
+  markdown += '\nVersions include shortened image digests. Eligible PRs use CI-gated GitHub auto-merge; deployment is not verified here.\n';
   markdown += 'No PR proposal is not proof of the newest registry release; inspect the updater outcome and log.\n';
   if (before && before.revision !== after.revision) {
-    markdown += '\nMain advanced during the run. Main-after values reflect that concurrent change, not a Renovate merge.\n';
+    markdown += '\nMain advanced during the run. Main-after values can include native auto-merges or other concurrent changes.\n';
   }
   if (missing.length > 0) {
     markdown += `\n**Blocked:** update branches without PRs: ${missing.map(escape).join(', ')}.\n`;

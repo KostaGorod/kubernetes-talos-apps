@@ -20,6 +20,8 @@ jobs:
       contents: write
       pull-requests: write
       issues: read
+      checks: read
+      statuses: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.0.0
         id: checkout
@@ -58,7 +60,7 @@ jobs:
           RENOVATE_ALLOWED_COMMANDS: '[]'
           RENOVATE_EXIT_CODE_FOR_ERRORS: 'true'
           RENOVATE_FORCE: >-
-            {"automerge":false,"dependencyDashboard":false,"branchPrefix":"renovate-manual/",
+            {"platformAutomerge":true,"dependencyDashboard":false,"branchPrefix":"renovate-manual/",
             "enabledManagers":["kubernetes"],"schedule":["at any time"],
             "prHourlyLimit":0,"prConcurrentLimit":0}
       - name: Report versions, PR outcomes and unchanged dependencies
