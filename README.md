@@ -23,6 +23,13 @@ explicitly selected Argo CD Applications.
 - The Argo CD Service is `ClusterIP`; no public ingress, NodePort, or
   Cloudflare Tunnel is configured here.
 
+## Dependency updates
+
+Daily Renovate execution, scoped image automerge, and the one-time GitHub App
+and required-check setup are described in [dependency updates](docs/dependency-updates.md).
+This covers BentoPDF and its Cloudflare connector; Argo deploys their merged
+image pins. Workflow source alone does not activate GitHub credentials or policy.
+
 ## Bootstrap and validation
 
 Install mise with its official Linux installer if needed:

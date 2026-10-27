@@ -1,12 +1,37 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":dependencyDashboard", "schedule:weekly"],
+  "extends": ["config:recommended"],
+  "enabledManagers": ["kubernetes", "custom.regex"],
+  "dependencyDashboard": false,
+  "automerge": false,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
+  "platformAutomerge": false,
+  "ignoreTests": false,
+  "internalChecksAsSuccess": false,
   "labels": ["dependencies"],
   "prHourlyLimit": 4,
   "kubernetes": {
     "managerFilePatterns": ["/^gitops\\/apps\\/bentopdf\\/.+\\.ya?ml$/"],
     "pinDigests": true
   },
+  "packageRules": [
+    {
+      "matchDatasources": ["kubernetes-api"],
+      "enabled": false
+    },
+    {
+      "description": "Automerge validated non-major BentoPDF workload image updates only",
+      "matchManagers": ["kubernetes"],
+      "matchFileNames": ["gitops/apps/bentopdf/*.yaml"],
+      "matchPackageNames": [
+        "cloudflare/cloudflared",
+        "ghcr.io/alam00000/bentopdf-simple"
+      ],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true
+    }
+  ],
   "customManagers": [
     {
       "customType": "regex",

@@ -9,8 +9,9 @@ schema_template='{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 schema_location="${schema_base}${schema_template}"
 rendered_apps="$(mktemp --suffix=.yaml)"
 rendered_paperless="$(mktemp --suffix=.yaml)"
+rendered_bentopdf="$(mktemp --suffix=.yaml)"
 rendered_argocd="$(mktemp --suffix=.yaml)"
-trap 'rm -f "$rendered_apps" "$rendered_paperless" "$rendered_argocd"' EXIT
+trap 'rm -f "$rendered_apps" "$rendered_paperless" "$rendered_bentopdf" "$rendered_argocd"' EXIT
 
 printf '%s\n' '== YAML lint =='
 yamllint --strict .
@@ -27,6 +28,14 @@ helmfile -f bootstrap/argocd/helmfile.yaml template > "$rendered_argocd"
 printf '%s\n' '== Build talos-primary Application allowlist =='
 kustomize build gitops/clusters/talos-primary/apps > "$rendered_apps"
 kustomize build gitops/apps/paperless-ngx > "$rendered_paperless"
+kustomize build gitops/apps/bentopdf > "$rendered_bentopdf"
+
+printf '%s\n' '== Validate rendered BentoPDF and tunnel resources =='
+kubeconform \
+  -strict \
+  -summary \
+  -schema-location default \
+  "$rendered_bentopdf"
 
 printf '%s\n' '== Validate rendered Paperless-ngx resources =='
 kubeconform \
