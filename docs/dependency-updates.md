@@ -2,8 +2,8 @@
 
 ## Run Renovate now from GitHub
 
-The **Renovate now** workflow runs the real Renovate CLI with GitHub's built-in
-`GITHUB_TOKEN`. It looks up current image versions and immutable digests, then
+The **Renovate now** workflow uses the official `renovatebot/github-action`
+with GitHub's built-in `GITHUB_TOKEN`. It looks up image versions and digests, then
 creates or updates bot-authored PRs. No PAT, private-key secret or hosted portal
 login is required. This setup PR does not manually bump either workload image.
 
@@ -35,8 +35,8 @@ availability, CI, human review or branch protection, and it never merges.
 Enable **Settings > Actions > General > Workflow permissions > Allow GitHub
 Actions to create and approve pull requests**. GitHub combines PR creation and
 approval in that repository setting. The workflow needs PR creation only: it
-contains no approval command and explicitly forces `automerge=false` through
-CLI overrides, even though repository package rules permit hosted automerge.
+contains no approval command and forces `automerge=false` through
+`RENOVATE_FORCE`, even though repository package rules permit hosted automerge.
 Do not change default workflow permissions to write; writes are granted only
 to the manual Renovate job.
 
@@ -46,7 +46,15 @@ so Issues write is unnecessary. No cluster credentials, repository checkout,
 PR-triggered privileged execution, Docker socket, install scripts, plugins or
 post-upgrade commands are used. Execution is allowlisted to this repository's
 trusted `main`, serializes manual runs and times out after 15 minutes. The
-pinned native CLI runs on `ubuntu-slim`.
+official Action runs on `ubuntu-latest`, which provides Docker. Both the Action
+commit and its Renovate image digest are pinned. The engine container receives
+no host volumes or Docker socket; the Action uses runner Docker to launch it.
+
+An official `actions/github-script` read-only check follows the updater. If a
+pending `renovate-manual/` branch has no open PR, the job fails with an explicit
+message instead of presenting branch creation alone as success. Renovate can
+catch PR-creation errors and exit zero, so its exit status is not sufficient.
+The check verifies PR existence, not successful CI, review, merge or deployment.
 
 GitHub's built-in token can create update PRs, but GitHub requires manual
 approval for their workflow runs. A pending or skipped check is not a pass.
@@ -101,7 +109,10 @@ longer future tags/digests do not break lint or hide the image in a folded scala
 
 Source CI runs YAML/action lint, bootstrap/selection validation, BentoPDF and
 tunnel Kustomize/schema validation, and strict Renovate config validation.
-Maintain the pinned CLI in the manual and validation workflows together.
+PR CI also executes the official Renovate Action and pinned image with a
+read-only token and `dryRun=lookup`, testing launcher/authentication/extraction
+without dependency branch or PR writes. This does not prove PR-write permission.
+Maintain the pinned engine version in the manual and validation workflows together.
 Mend manages its hosted engine version independently.
 
 Local checks with Node 24 installed:
@@ -135,7 +146,7 @@ credentials and hostname routes.
 ## References
 
 - [Official action's built-in token and workflow-approval constraints](https://github.com/renovatebot/github-action#token)
-- [Renovate CLI force-overrides](https://docs.renovatebot.com/self-hosted-configuration/#forcecli)
+- [Renovate forced configuration](https://docs.renovatebot.com/self-hosted-configuration/#force)
 - [GitHub Actions repository permissions](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository)
 - [Hosted App](https://github.com/apps/renovate)
 - [Hosted on-demand jobs and logs](https://docs.renovatebot.com/mend-hosted/overview/)
