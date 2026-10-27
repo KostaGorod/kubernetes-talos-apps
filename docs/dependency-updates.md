@@ -30,7 +30,7 @@ Cloudflared uses calendar versions. A new month is a minor update; a new year
 is a major update and remains manual. CI validates configuration, not a running
 tunnel or browser PDF operation. Minor/patch labels do not guarantee runtime
 compatibility. Argo readiness probes provide rollout feedback, not functional
-tests or automatic rollback. This source change does not bump either image.
+tests or automatic rollback.
 
 Keep the BentoPDF `image:` reference on one line with its scoped lint exception.
 The Kubernetes manager misses folded YAML image scalars. Preserve immutable
@@ -76,6 +76,21 @@ Normal `pull_request` validation keeps a read-only token and no Renovate secret.
 App-created PRs use normal GitHub event delivery, not the built-in Actions-token
 PR approval workaround. No `pull_request_target` or privileged PR execution is
 introduced. Verify the first real PR check runs without manual approval.
+
+## Manual runs and the GitHub dashboard
+
+`dependencyDashboard=true` asks Renovate to create and maintain its native
+**Dependency Dashboard** issue on the next hosted run. Use its rendered retry,
+rebase and update-selection checkboxes for the operations they describe. These
+controls send supported webhook events to the hosted service; they do not start
+a second updater in GitHub Actions or bypass merge checks. They also do not
+make major/operator updates eligible for automerge.
+
+For a full on-demand run, sign into the [Mend Developer Portal](https://developer.mend.io/),
+select this installed repository and use its job-trigger control. The portal
+also shows status and logs. If no native dashboard issue exists yet, check App
+installation scope and the hosted job first. Do not create a handwritten
+dashboard issue, as it would not establish that Renovate has processed the repo.
 
 ## Verification and maintenance
 
